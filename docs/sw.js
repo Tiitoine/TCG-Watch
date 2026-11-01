@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "tcg-watch-v1";
+const CACHE = "tcg-watch-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -14,18 +14,16 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// Réseau d'abord pour tout (page et données toujours à jour), cache en secours hors-ligne.
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
-  // Les données : réseau d'abord (toujours fraîches), cache en secours hors-ligne.
-  if (url.pathname.endsWith("data.json")){
-    e.respondWith(
-      fetch(e.request)
-        .then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return r; })
-        .catch(() => caches.match(e.request))
-    );
-    return;
-  }
-  // Le reste : cache d'abord.
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request)));
+  e.respondWith(
+    fetch(e.request)
+      .then((r) => {
+        if (r.ok){ const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+        return r;
+      })
+      .catch(() => caches.match(e.request))
+  );
 });
