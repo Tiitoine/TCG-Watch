@@ -12,11 +12,11 @@
         "id": "cyberpunk",
         "name": "Cyberpunk",
         "pattern": "cyberpunk",
-        "context": "tcg|jcc|trading-card|carte|booster|display|deck|night-city|starter"
+        "context": "welcome-to-night-city|\\bwnc\\b|\\btcg\\b|\\bjcc\\b|trading-card|booster|display"
       }
     ],
-    "context": "booster|display|\\betb\\b|coffret|\\btcg\\b|\\bjcc\\b|carte|\\bcards?\\b|\\bdeck|tripack|bundle|blister|ultra-premium|dresseur|starter|collection",
-    "exclude": "peluche|figurine|funko|manga|\\bdvd|blu-?ray|puzzle|lego|t-?shirt|sweat|\\bmug\\b|porte-cle|coque|classeur|sleeves|protege|portfolio|tapis-de-jeu|playmat|jeu-video|\\bps[45]\\b|xbox|nintendo-switch|poster|affiche|costume|deguisement"
+    "context": "booster|display|\\betb\\b|coffret|\\btcg\\b|\\bjcc\\b|carte|\\bcards?\\b|\\bdeck|tripack|bundle|blister|ultra-premium|starter|collection",
+    "exclude": "peluche|figurine|funko|manga|\\bdvd|blu-?ray|puzzle|lego|t-?shirt|sweat|\\bmug\\b|porte-cle|coque|classeur|sleeves|protege|portfolio|tapis-de-jeu|playmat|jeu-video|\\bps[45]\\b|xbox|nintendo-switch|poster|affiche|costume|deguisement|rangement|range-cartes|cahier|boitier|deck-?box|\\balbum|\\btapis|souris|sac-a-dos|cartable|trousse|gourde|\\bmontre\\b|\\blampe|veilleuse|squishmallow|mega-?bloks|mattel|construction|a-construire|vinyle|\\blp\\b|soundtrack|tarot|moutarde|\\bverre\\b|jeu-de-societe|jeu-dresseur|\\bquiz|trivia|labyrinth|mini-jeu|\\blivre\\b|\\bbook\\b|battle-mat|cyberpunk-red|combat-zone|mutant-year|netrunning|playing-cards|bicycle|ultra-?pro|dragon-shield|gamegenic|\\bkmc\\b|sticker-?book|autocollant|pyjama|chaussette|casquette"
   },
   "sites": [
     { "id": "fnac", "name": "Fnac", "base": "https://www.fnac.com" },
@@ -37,8 +37,8 @@
       "base": "https://www.joueclub.fr",
       "sitemaps": ["https://www.joueclub.fr/Assets/Rbs/Seo/sitemap-index.xml"]
     },
-    { "id": "philibert", "name": "Philibert", "base": "https://www.philibertnet.com" },
+    { "id": "philibert", "name": "Philibert", "base": "https://www.philibertnet.com", "exclude": "^/en/" },
     { "id": "playin", "name": "Play-In", "base": "https://www.play-in.com" },
-    { "id": "lorenzone", "name": "LorenZone", "base": "https://lorenzone.fr" }
+    { "id": "lorenzone", "name": "LorenZone", "base": "https://lorenzone.fr", "exclude": "/carte-" }
   ]
 }

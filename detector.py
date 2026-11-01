@@ -28,7 +28,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 UA = "Mozilla/5.0 (compatible; TCGWatch/1.0; veille personnelle de sitemaps publics)"
-MAX_ITEMS = 1000
+MAX_ITEMS = 3000
 MAX_STATE_URLS = 20000
 
 SKIP_HINT = re.compile(r"blog|cms|image|video|magasin|store|brand|marque|faq", re.I)
@@ -96,10 +96,15 @@ def norm(text: str) -> str:
     return "".join(c for c in text if not unicodedata.combining(c))
 
 
-def classify(url: str, rules: dict):
+def exclude_for(site: dict, rules: dict) -> str:
+    extra = site.get("exclude")
+    return rules["exclude"] + ("|" + extra if extra else "")
+
+
+def classify(url: str, rules: dict, exclude: str | None = None):
     p = urllib.parse.urlsplit(url)
     text = norm(p.path + " " + p.query)
-    if re.search(rules["exclude"], text):
+    if re.search(exclude or rules["exclude"], text):
         return None
     for g in rules["games"]:
         if re.search(g["pattern"], text) and re.search(g.get("context", rules["context"]), text):
@@ -108,16 +113,24 @@ def classify(url: str, rules: dict):
 
 
 def title_from_url(url: str) -> str:
+    """Titre lisible : on prend le segment d'adresse qui contient le plus de vrais mots
+    (les identifiants du type pr-37fa6180-... ou 88013-... sont ignorés)."""
     path = urllib.parse.urlsplit(url).path.rstrip("/")
-    for seg in reversed(path.split("/")):
+    best, best_score = "", 0
+    for seg in path.split("/"):
         seg = urllib.parse.unquote(seg)
         seg = re.sub(r"\.(html?|php|aspx?)$", "", seg, flags=re.I)
-        seg = re.sub(r"[-_+]+", " ", seg).strip()
-        seg = re.sub(r"^\d+\s+", "", seg)
-        seg = re.sub(r"\s+[a-z]?\d{5,}$", "", seg, flags=re.I)
-        if len(re.findall(r"[A-Za-zÀ-ÿ]", seg)) >= 6:
-            return seg[:1].upper() + seg[1:]
-    return url
+        tokens = [t for t in re.split(r"[-_+\s]+", seg) if t]
+        words = [t for t in tokens if re.fullmatch(r"[A-Za-zÀ-ÿ']{3,}", t)]
+        if len(words) < 2 or len(words) < best_score:
+            continue
+        keep = [t for t in tokens if not re.fullmatch(r"[0-9a-f]{8,}|\d{6,}", t, re.I)]
+        if keep and keep[0].isdigit():
+            keep = keep[1:]
+        best, best_score = " ".join(keep), len(words)
+    if not best:
+        return url
+    return best[:1].upper() + best[1:]
 
 
 def crawl_site(site: dict, defaults: dict, rules: dict, max_sitemaps: int | None = None):
@@ -128,6 +141,7 @@ def crawl_site(site: dict, defaults: dict, rules: dict, max_sitemaps: int | None
     delay = site.get("delay", defaults.get("delay", 0.6))
     deadline = time.time() + budget
     errors: list[str] = []
+    exclude = exclude_for(site, rules)
 
     roots = list(site.get("sitemaps", []))
     if not roots:
@@ -169,7 +183,7 @@ def crawl_site(site: dict, defaults: dict, rules: dict, max_sitemaps: int | None
         else:
             for loc, lastmod in entries:
                 total += 1
-                game = classify(loc, rules)
+                game = classify(loc, rules, exclude)
                 if game:
                     matches[loc] = {"game": game, "lastmod": lastmod}
         time.sleep(delay)
@@ -316,6 +330,18 @@ def main() -> int:
             pass
     data["games"] = games
     items = {it["url"]: it for it in data.get("items", [])}
+    # Re-filtrage de l'existant : si les règles ont changé, les anciennes pages
+    # qui ne correspondent plus disparaissent de la liste (et les titres sont refaits).
+    site_ex = {s["id"]: exclude_for(s, cfg["rules"]) for s in cfg["sites"]}
+    kept = {}
+    for u, it in items.items():
+        if it.get("site") not in site_ex:
+            continue
+        g = classify(u, cfg["rules"], site_ex[it["site"]])
+        if g:
+            it["game"], it["title"] = g, title_from_url(u)
+            kept[u] = it
+    items = kept
 
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(lambda s: process_site(s, cfg, state_dir), cfg["sites"]))
