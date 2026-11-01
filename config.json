@@ -21,17 +21,24 @@
   "sites": [
     { "id": "fnac", "name": "Fnac", "base": "https://www.fnac.com" },
     { "id": "cultura", "name": "Cultura", "base": "https://www.cultura.com" },
-    { "id": "micromania", "name": "Micromania", "base": "https://www.micromania.fr" },
+    {
+      "id": "micromania",
+      "name": "Micromania",
+      "base": "https://www.micromania.fr",
+      "sitemaps": ["https://www.micromania.fr/sitemap_index.xml"]
+    },
     { "id": "leclerc", "name": "E.Leclerc", "base": "https://www.e.leclerc" },
     { "id": "auchan", "name": "Auchan", "base": "https://www.auchan.fr" },
     { "id": "carrefour", "name": "Carrefour", "base": "https://www.carrefour.fr" },
-    { "id": "cdiscount", "name": "Cdiscount", "base": "https://www.cdiscount.com" },
     { "id": "kingjouet", "name": "King Jouet", "base": "https://www.king-jouet.com" },
-    { "id": "joueclub", "name": "JouéClub", "base": "https://www.joueclub.fr" },
+    {
+      "id": "joueclub",
+      "name": "JouéClub",
+      "base": "https://www.joueclub.fr",
+      "sitemaps": ["https://www.joueclub.fr/Assets/Rbs/Seo/sitemap-index.xml"]
+    },
     { "id": "philibert", "name": "Philibert", "base": "https://www.philibertnet.com" },
     { "id": "playin", "name": "Play-In", "base": "https://www.play-in.com" },
-    { "id": "lorenzone", "name": "LorenZone", "base": "https://lorenzone.fr" },
-    { "id": "blazingtail", "name": "Blazing Tail", "base": "https://www.blazingtail.fr" },
-    { "id": "cartaneko", "name": "Cartaneko", "base": "https://cartaneko.com" }
+    { "id": "lorenzone", "name": "LorenZone", "base": "https://lorenzone.fr" }
   ]
 }

@@ -31,7 +31,7 @@ UA = "Mozilla/5.0 (compatible; TCGWatch/1.0; veille personnelle de sitemaps publ
 MAX_ITEMS = 1000
 MAX_STATE_URLS = 20000
 
-SKIP_HINT = re.compile(r"blog|cms|image|video|magasin|store|shop-locator|brand|marque|seo|faq|aide", re.I)
+SKIP_HINT = re.compile(r"blog|cms|image|video|magasin|store|brand|marque|faq", re.I)
 PRIO_HINT = re.compile(r"product|produit|article|item|catalog|categor|jeu|toy|jouet|carte|tcg", re.I)
 
 
@@ -162,7 +162,7 @@ def crawl_site(site: dict, defaults: dict, rules: dict, max_sitemaps: int | None
             continue
         if kind == "index":
             if depth < 3:
-                children = [loc for loc, _ in entries if not SKIP_HINT.search(loc)]
+                children = [loc for loc, _ in entries if not SKIP_HINT.search(urllib.parse.urlsplit(loc).path)]
                 children.sort(key=lambda s: 0 if PRIO_HINT.search(s) else 1)
                 queue.extend((c, depth + 1) for c in children)
                 queue.sort(key=lambda t: t[1])
