@@ -1,0 +1,37 @@
+{
+  "defaults": {
+    "max_sitemaps": 80,
+    "time_budget": 300,
+    "delay": 0.6
+  },
+  "rules": {
+    "games": [
+      { "id": "pokemon", "name": "Pokémon", "pattern": "pokemon" },
+      { "id": "onepiece", "name": "One Piece", "pattern": "one[-_ ]?piece" },
+      {
+        "id": "cyberpunk",
+        "name": "Cyberpunk",
+        "pattern": "cyberpunk",
+        "context": "tcg|jcc|trading-card|carte|booster|display|deck|night-city|starter"
+      }
+    ],
+    "context": "booster|display|\\betb\\b|coffret|\\btcg\\b|\\bjcc\\b|carte|\\bcards?\\b|\\bdeck|tripack|bundle|blister|ultra-premium|dresseur|starter|collection",
+    "exclude": "peluche|figurine|funko|manga|\\bdvd|blu-?ray|puzzle|lego|t-?shirt|sweat|\\bmug\\b|porte-cle|coque|classeur|sleeves|protege|portfolio|tapis-de-jeu|playmat|jeu-video|\\bps[45]\\b|xbox|nintendo-switch|poster|affiche|costume|deguisement"
+  },
+  "sites": [
+    { "id": "fnac", "name": "Fnac", "base": "https://www.fnac.com" },
+    { "id": "cultura", "name": "Cultura", "base": "https://www.cultura.com" },
+    { "id": "micromania", "name": "Micromania", "base": "https://www.micromania.fr" },
+    { "id": "leclerc", "name": "E.Leclerc", "base": "https://www.e.leclerc" },
+    { "id": "auchan", "name": "Auchan", "base": "https://www.auchan.fr" },
+    { "id": "carrefour", "name": "Carrefour", "base": "https://www.carrefour.fr" },
+    { "id": "cdiscount", "name": "Cdiscount", "base": "https://www.cdiscount.com" },
+    { "id": "kingjouet", "name": "King Jouet", "base": "https://www.king-jouet.com" },
+    { "id": "joueclub", "name": "JouéClub", "base": "https://www.joueclub.fr" },
+    { "id": "philibert", "name": "Philibert", "base": "https://www.philibertnet.com" },
+    { "id": "playin", "name": "Play-In", "base": "https://www.play-in.com" },
+    { "id": "lorenzone", "name": "LorenZone", "base": "https://lorenzone.fr" },
+    { "id": "blazingtail", "name": "Blazing Tail", "base": "https://www.blazingtail.fr" },
+    { "id": "cartaneko", "name": "Cartaneko", "base": "https://cartaneko.com" }
+  ]
+}

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TCG Watch">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>TCG Watch</title>
+<style>
+  :root{
+    --bg:#0d0f14; --panel:#161a22; --line:#252b37; --text:#e8ebf2; --muted:#8b93a5;
+    --accent:#ffd23f; --new:#3ddc97;
+    --pokemon:#ffcb05; --onepiece:#ff5a5f; --cyberpunk:#19e3d6;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{padding:0 16px calc(24px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+  header{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:calc(14px + env(safe-area-inset-top)) 0 10px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:1.25rem;margin:0;letter-spacing:.02em}
+  h1 span{color:var(--accent)}
+  #updated{color:var(--muted);font-size:.78rem}
+  button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:7px 14px;cursor:pointer}
+  button:active{transform:scale(.97)}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;font-size:.9rem}
+  .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .row{display:flex;gap:8px;margin-top:8px}
+  input,select{flex:1;min-width:0;font:inherit;color:var(--text);background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+  select{flex:0 0 42%}
+  #status{margin:14px 0;font-size:.85rem;color:var(--muted)}
+  .card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:12px 14px;margin:10px 0;text-decoration:none;color:inherit;position:relative}
+  .card.new{border-color:var(--new)}
+  .meta{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+  .tag{font-weight:700;padding:2px 8px;border-radius:999px;color:#10131a;font-size:.72rem}
+  .tag.pokemon{background:var(--pokemon)} .tag.onepiece{background:var(--onepiece)}
+  .tag.cyberpunk{background:var(--cyberpunk)} .tag.other{background:var(--muted)}
+  .badge{background:var(--new);color:#06210f;font-weight:700;border-radius:999px;padding:2px 8px;font-size:.7rem}
+  .title{margin:6px 40px 2px 0;font-weight:600;overflow-wrap:anywhere}
+  .star{position:absolute;right:6px;top:6px;border:0;background:none;font-size:1.4rem;padding:6px 10px;color:var(--muted)}
+  .star.on{color:var(--accent)}
+  details{margin-top:20px;color:var(--muted);font-size:.85rem}
+  summary{cursor:pointer}
+  .site{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)}
+  .ok{color:var(--new)} .ko{color:var(--onepiece)}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div>
+      <h1>TCG <span>Watch</span></h1>
+      <div id="updated">Chargement…</div>
+    </div>
+    <button id="refresh" type="button">Actualiser</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="row">
+    <input id="q" type="search" placeholder="Rechercher (display, ETB, ...)" autocomplete="off">
+    <select id="site" aria-label="Enseigne"><option value="">Toutes les enseignes</option></select>
+  </div>
+</header>
+
+<div id="status"></div>
+<main id="list"></main>
+
+<details id="health">
+  <summary>État des enseignes surveillées</summary>
+  <div id="sites"></div>
+</details>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+let data = { items: [], sites: {}, games: {} };
+let favs = new Set(store.get("favs", []));
+const lastVisit = store.get("lastVisit", 0);
+const filter = { game: "", site: "", q: "", favOnly: false };
+
+function ago(iso){
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 90) return "à l'instant";
+  if (s < 3600) return Math.round(s / 60) + " min";
+  if (s < 86400) return Math.round(s / 3600) + " h";
+  return Math.round(s / 86400) + " j";
+}
+const safeUrl = (u) => /^https?:\/\//i.test(u) ? u : "#";
+
+function buildChips(){
+  const box = $("chips");
+  box.textContent = "";
+  const defs = [["", "Tous"], ...Object.entries(data.games || {}), ["__fav", "★ Favoris"]];
+  for (const [id, label] of defs){
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = label;
+    const pressed = id === "__fav" ? filter.favOnly : (!filter.favOnly && filter.game === id);
+    b.setAttribute("aria-pressed", String(pressed));
+    b.onclick = () => {
+      if (id === "__fav"){ filter.favOnly = !filter.favOnly; }
+      else { filter.favOnly = false; filter.game = id; }
+      buildChips(); render();
+    };
+    box.appendChild(b);
+  }
+}
+
+function buildSites(){
+  const sel = $("site");
+  const names = new Map(Object.entries(data.sites || {}).map(([id, s]) => [id, s.name]));
+  sel.length = 1;
+  for (const [id, name] of names){
+    const o = document.createElement("option"); o.value = id; o.textContent = name; sel.appendChild(o);
+  }
+  const box = $("sites"); box.textContent = "";
+  for (const [id, s] of Object.entries(data.sites || {})){
+    const row = document.createElement("div"); row.className = "site";
+    const a = document.createElement("span"); a.textContent = s.name;
+    const b = document.createElement("span");
+    b.className = s.ok ? "ok" : "ko";
+    b.textContent = s.ok ? `OK · ${s.urls_seen} URLs · ${ago(s.last_run)}` : "illisible" + (s.error ? " (" + s.error.slice(0, 40) + ")" : "");
+    row.append(a, b); box.appendChild(row);
+  }
+}
+
+function render(){
+  const list = $("list"); list.textContent = "";
+  const q = filter.q.trim().toLowerCase();
+  const rows = (data.items || []).filter((it) =>
+    (!filter.game || it.game === filter.game) &&
+    (!filter.site || it.site === filter.site) &&
+    (!filter.favOnly || favs.has(it.url)) &&
+    (!q || (it.title + " " + it.site_name).toLowerCase().includes(q)));
+  const fresh = rows.filter((it) => !it.baseline && new Date(it.first_seen).getTime() > lastVisit).length;
+  $("status").textContent = rows.length
+    ? `${rows.length} page(s)` + (fresh ? ` · ${fresh} nouvelle(s) depuis ta dernière visite` : "")
+    : "";
+  if (!rows.length){
+    const e = document.createElement("div"); e.className = "empty";
+    e.textContent = data.items && data.items.length
+      ? "Aucun résultat avec ces filtres."
+      : "Aucune page détectée pour l'instant. Le premier passage sert de référence : les nouveautés apparaîtront ici.";
+    list.appendChild(e); return;
+  }
+  for (const it of rows.slice(0, 300)){
+    const isNew = !it.baseline && new Date(it.first_seen).getTime() > lastVisit;
+    const a = document.createElement("a");
+    a.className = "card" + (isNew ? " new" : "");
+    a.href = safeUrl(it.url); a.target = "_blank"; a.rel = "noopener noreferrer";
+    const meta = document.createElement("div"); meta.className = "meta";
+    const tag = document.createElement("span");
+    tag.className = "tag " + (["pokemon", "onepiece", "cyberpunk"].includes(it.game) ? it.game : "other");
+    tag.textContent = (data.games && data.games[it.game]) || it.game;
+    const site = document.createElement("span"); site.textContent = it.site_name;
+    const when = document.createElement("span");
+    when.textContent = it.baseline ? "déjà en ligne" : "détecté il y a " + ago(it.first_seen);
+    meta.append(tag, site, when);
+    if (isNew){ const n = document.createElement("span"); n.className = "badge"; n.textContent = "NOUVEAU"; meta.append(n); }
+    const t = document.createElement("div"); t.className = "title"; t.textContent = it.title;
+    const star = document.createElement("button");
+    star.type = "button"; star.className = "star" + (favs.has(it.url) ? " on" : "");
+    star.textContent = favs.has(it.url) ? "★" : "☆";
+    star.setAttribute("aria-label", "Favori");
+    star.onclick = (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      favs.has(it.url) ? favs.delete(it.url) : favs.add(it.url);
+      store.set("favs", [...favs]); render();
+    };
+    a.append(meta, t, star);
+    list.appendChild(a);
+  }
+}
+
+async function load(){
+  $("updated").textContent = "Chargement…";
+  try{
+    const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    data = await r.json();
+    $("updated").textContent = "Mis à jour il y a " + ago(data.updated);
+  }catch(e){
+    $("updated").textContent = "Impossible de charger les données";
+  }
+  buildChips(); buildSites(); render();
+}
+
+$("refresh").onclick = load;
+$("q").oninput = (e) => { filter.q = e.target.value; render(); };
+$("site").onchange = (e) => { filter.site = e.target.value; render(); };
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") store.set("lastVisit", Date.now()); });
+window.addEventListener("pagehide", () => store.set("lastVisit", Date.now()));
+
+if ("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(() => {}); }
+load();
+</script>
+</body>
+</html>
