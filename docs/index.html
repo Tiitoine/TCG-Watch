@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0e1322">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#090D16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="TCG Watch">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,175 +13,294 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>TCG Watch</title>
 <style>
+  /* ============ Design system ============ */
   :root{
-    --bg:#0e1322; --surface:#161d33; --surface-2:#1e2845; --line:#2b3658;
-    --text:#eef1fb; --muted:#9aa4c6; --accent:#9db4ff; --on-game:#10131f;
-    --pokemon:#ffcb05; --onepiece:#ff5d4d; --cyberpunk:#27e0d0;
-    --pokemon-ink:#ffcb05; --onepiece-ink:#ff8274; --cyberpunk-ink:#27e0d0;
-    --radius:14px;
+    --bg:#090D16; --card:rgba(19,27,46,.80); --card-solid:#131B2E;
+    --line:rgba(255,255,255,.07); --line-strong:rgba(255,255,255,.12);
+    --text:#E8ECF6; --muted:#8A94B2; --ink:#0B0F1A;
+    --accent:#818CF8; --accent-rgb:129,140,248;
+    --radius:16px; --side:264px;
+    --font:Inter,"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
   }
-  @media (prefers-color-scheme: light){
-    :root{
-      --bg:#f2f4fb; --surface:#ffffff; --surface-2:#e8ecf8; --line:#d5dbee;
-      --text:#141a30; --muted:#586184; --accent:#3552d6; --on-game:#10131f;
-      --pokemon-ink:#8a6a00; --onepiece-ink:#c0312a; --cyberpunk-ink:#0a7f76;
-    }
-  }
-  .g-pokemon{--g:var(--pokemon);--gi:var(--pokemon-ink)}
-  .g-onepiece{--g:var(--onepiece);--gi:var(--onepiece-ink)}
-  .g-cyberpunk{--g:var(--cyberpunk);--gi:var(--cyberpunk-ink)}
-  .g-other{--g:var(--muted);--gi:var(--muted)}
+  [data-accent="pokemon"]{--accent:#FACC15;--accent-rgb:250,204,21}
+  [data-accent="onepiece"]{--accent:#F43F5E;--accent-rgb:244,63,94}
+  [data-accent="cyberpunk"]{--accent:#06B6D4;--accent-rgb:6,182,212}
+  .g-pokemon{--g:#FACC15;--g-rgb:250,204,21}
+  .g-onepiece{--g:#F43F5E;--g-rgb:244,63,94}
+  .g-cyberpunk{--g:#06B6D4;--g-rgb:6,182,212}
+  .g-other{--g:#94A3B8;--g-rgb:148,163,184}
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html{background:var(--bg)}
-  body{margin:0;background:var(--bg);color:var(--text);
-    font:16px/1.4 "Avenir Next","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
-    padding:0 16px calc(32px + env(safe-area-inset-bottom));max-width:680px;margin-inline:auto}
-  button,input,select{font:inherit;color:inherit}
+  html{background:var(--bg);color-scheme:dark}
+  body{margin:0;color:var(--text);font:15px/1.45 var(--font);-webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(900px 520px at 12% -12%,rgba(var(--accent-rgb),.14),transparent 62%),
+      radial-gradient(700px 420px at 100% 0,rgba(124,58,237,.10),transparent 58%),
+      var(--bg);
+    background-attachment:fixed;min-height:100vh}
+  button,input{font:inherit;color:inherit}
   button{cursor:pointer}
+  h1,h2,h3,p{margin:0}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  svg{display:block}
+  .ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-  /* ---------- en-tête collant ---------- */
-  .top{position:sticky;top:0;z-index:10;margin:0 -16px;padding:calc(12px + env(safe-area-inset-top)) 16px 10px;
-    background:color-mix(in srgb,var(--bg) 97%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  h1{margin:0;font-size:1.3rem;font-weight:800;letter-spacing:-.02em}
-  #updated{margin:1px 0 0;font-size:.78rem;color:var(--muted)}
-  .icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
-    display:grid;place-items:center;flex:none}
-  .icon-btn svg{width:20px;height:20px}
-  .icon-btn[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
-  .icon-btn:active,.tab:active,.chip:active{transform:scale(.96)}
+  /* ============ Layout ============ */
+  .app{max-width:1400px;margin:0 auto}
+  .content{padding:0 16px calc(104px + env(safe-area-inset-bottom));min-width:0}
+  .side{display:none}
+  .brand-m{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.15rem;letter-spacing:-.02em}
+  .brand-m img,.brand img{width:30px;height:30px;border-radius:8px}
+  .search-d{display:none}
 
-  .tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 0 2px;margin:0 -16px;padding-inline:16px;scrollbar-width:none}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;
-    font-weight:650;font-size:.92rem;display:flex;align-items:center;gap:8px}
-  .tab .n{font-weight:500;font-size:.8rem;opacity:.7;font-variant-numeric:tabular-nums}
-  .tab[aria-pressed="true"]{background:var(--g,var(--text));color:var(--on-game,var(--bg));border-color:transparent}
-  .tab.all[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+  @media (min-width:1024px){
+    .app{display:grid;grid-template-columns:var(--side) minmax(0,1fr)}
+    .side{display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto;
+      padding:24px 14px;border-right:1px solid var(--line)}
+    .content{padding:0 28px 48px}
+    .brand-m{display:none}
+    .search-d{display:flex}
+    .bottom{display:none!important}
+  }
 
-  /* ---------- outils ---------- */
-  .tools{display:grid;grid-template-columns:1fr auto;gap:8px;margin:14px 0 8px}
-  .tools input,.tools select{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
-  .tools select{max-width:40vw;text-overflow:ellipsis}
-  .chips{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 4px;padding:0 16px 4px;scrollbar-width:none}
-  .chips::-webkit-scrollbar{display:none}
-  .chip{flex:none;border:1px solid var(--line);background:transparent;border-radius:8px;padding:6px 12px;font-size:.84rem;color:var(--muted)}
-  .chip[aria-pressed="true"]{color:var(--text);border-color:var(--accent);background:var(--surface-2)}
+  /* ============ Sidebar ============ */
+  .brand{display:flex;align-items:center;gap:11px;padding:2px 10px;font-weight:800;font-size:1.2rem;letter-spacing:-.02em}
+  .nav-h{padding:0 10px 6px;font-size:.78rem;font-weight:650;color:var(--muted)}
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav button{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border:0;border-radius:10px;
+    background:none;color:var(--muted);font-weight:600;text-align:left;transition:background .15s,color .15s}
+  .nav button:hover{background:rgba(255,255,255,.05);color:var(--text)}
+  .nav button[aria-current="true"]{background:rgba(var(--accent-rgb),.13);color:var(--accent)}
+  .nav .dot{width:9px;height:9px;border-radius:50%;background:var(--g);box-shadow:0 0 10px rgba(var(--g-rgb),.7);flex:none;margin:0 5.5px}
+  .nav .dot.off{background:#475069;box-shadow:none}
+  .nav .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nav .n{font-size:.78rem;font-weight:600;font-variant-numeric:tabular-nums;opacity:.75}
+  .nav .ico{width:20px;height:20px}
 
-  /* ---------- sections ---------- */
-  .sec-title{display:flex;align-items:baseline;gap:8px;margin:22px 0 4px;font-size:1.12rem;font-weight:800;letter-spacing:-.01em}
-  .sec-title .n{font-size:.85rem;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
-  .day{margin:16px 2px 8px;font-size:.88rem;font-weight:650;color:var(--muted);text-transform:capitalize}
-  ul{list-style:none;margin:0;padding:0}
+  /* ============ Barre haute (collante) ============ */
+  .head{position:sticky;top:0;z-index:20;margin:0 -16px;padding:calc(12px + env(safe-area-inset-top)) 16px 4px;
+    background:linear-gradient(rgba(9,13,22,.92) 70%,rgba(9,13,22,0));
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  @media (min-width:1024px){ .head{margin:0 -28px;padding:20px 28px 4px} }
+  .bar{display:flex;align-items:center;gap:12px;justify-content:space-between}
+  .bar-r{display:flex;align-items:center;gap:10px;margin-left:auto}
+  .search-d{flex:1;max-width:440px;position:relative;align-items:center}
+  .search-d .ico{position:absolute;left:12px;color:var(--muted);width:18px;height:18px}
+  .search-d input{width:100%;padding:10px 14px 10px 38px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(19,27,46,.7);color:var(--text)}
+  .search-d input::placeholder,.sheet input::placeholder{color:var(--muted)}
 
-  /* ---------- carte nouveauté ---------- */
-  .item{position:relative;background:var(--surface);border-radius:var(--radius);overflow:hidden;margin:0 0 10px}
-  .item::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--g)}
-  .item a.link{display:block;padding:13px 54px 13px 19px;color:inherit;text-decoration:none}
-  .item a.link:focus-visible{outline-offset:-3px}
-  .item.fresh{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--g) 55%,transparent)}
-  .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .kind{font-size:1.05rem;font-weight:780;letter-spacing:-.015em}
-  .tag{font-size:.74rem;font-weight:650;border-radius:6px;padding:1px 7px;background:var(--surface-2);color:var(--text)}
-  .tag.new{background:var(--g);color:var(--on-game)}
-  .name{margin:3px 0 9px;font-size:.92rem;line-height:1.35;opacity:.9;overflow-wrap:anywhere;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .meta{display:flex;flex-wrap:wrap;align-items:center;gap:3px 14px;font-size:.8rem;color:var(--muted)}
-  .meta .shop{color:var(--text);font-weight:650}
-  .meta .game{color:var(--gi);font-weight:650}
-  .meta .when{margin-left:auto;font-variant-numeric:tabular-nums}
-  .fav{position:absolute;right:4px;top:4px;width:44px;height:44px;border:0;background:none;border-radius:50%;
-    display:grid;place-items:center;color:var(--muted)}
-  .fav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}
-  .fav[aria-pressed="true"]{color:var(--pokemon)}
+  .live{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 10px;border-radius:999px;
+    background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.30);color:#86EFAC;font-weight:700;font-size:.82rem}
+  .live .pulse{position:relative;width:8px;height:8px;border-radius:50%;background:#22C55E}
+  .live .pulse::after{content:"";position:absolute;inset:0;border-radius:50%;background:#22C55E;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite}
+  .live.stale{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.32);color:#FCD34D}
+  .live.stale .pulse,.live.stale .pulse::after{background:#F59E0B}
+  .live.stale .pulse::after{animation:none}
+  @keyframes ping{75%,100%{transform:scale(2.6);opacity:0}}
+  .icon-btn{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(19,27,46,.7);
+    display:grid;place-items:center;color:var(--muted);transition:color .15s,border-color .15s}
+  .icon-btn:hover{color:var(--text);border-color:var(--line-strong)}
+  .icon-btn.spin .ico{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Carrousel des types */
+  .kinds{display:flex;gap:8px;overflow-x:auto;margin:12px -16px 0;padding:2px 16px 10px;
+    scroll-snap-type:x proximity;scroll-padding-inline:16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .kinds::-webkit-scrollbar{display:none}
+  @media (min-width:1024px){ .kinds{margin:12px -28px 0;padding:2px 28px 10px;scroll-padding-inline:28px} }
+  .chip{flex:none;scroll-snap-align:start;display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
+    border:1px solid var(--line);background:rgba(19,27,46,.6);color:var(--muted);font-weight:600;font-size:.86rem;
+    transition:border-color .15s,background .15s,color .15s}
+  .chip:hover{color:var(--text);border-color:var(--line-strong)}
+  .chip[aria-pressed="true"]{color:var(--accent);border-color:rgba(var(--accent-rgb),.55);background:rgba(var(--accent-rgb),.12)}
+  .chip .n{font-size:.76rem;opacity:.7;font-variant-numeric:tabular-nums;font-weight:500}
+
+  /* ============ Sections ============ */
+  main{display:flex;flex-direction:column;gap:26px;margin-top:10px}
+  .sec-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .sec-h h2{font-size:1.15rem;font-weight:780;letter-spacing:-.02em}
+  .sec-h .n{font-size:.82rem;font-weight:650;color:var(--muted);padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.06);font-variant-numeric:tabular-nums}
+  .ghost{margin-left:auto;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--muted);font-weight:600;font-size:.82rem}
+  .ghost:hover{color:var(--text);border-color:var(--line-strong)}
+
+  .sec-new{padding:18px;border-radius:22px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .sec-new.glow{border-color:rgba(var(--accent-rgb),.42);
+    box-shadow:0 0 0 1px rgba(var(--accent-rgb),.10),0 0 54px -22px rgba(var(--accent-rgb),.6);animation:glow 3.6s ease-in-out infinite}
+  @keyframes glow{50%{box-shadow:0 0 0 1px rgba(var(--accent-rgb),.18),0 0 72px -18px rgba(var(--accent-rgb),.8)}}
+  .sec-new.is-empty{padding:11px 16px}
+  .empty-line{display:flex;align-items:center;gap:11px;color:var(--muted);font-size:.9rem;white-space:nowrap;min-width:0}
+  .empty-line .ico{width:20px;height:20px;flex:none;color:var(--accent);opacity:.8}
+  .empty-line strong{color:var(--text);font-weight:650}
+  .empty-line span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+  /* ============ Grille bento ============ */
+  .grid{display:grid;gap:14px;grid-template-columns:1fr;grid-auto-flow:dense}
+  @media (min-width:640px){ .grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (min-width:1280px){
+    .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid .card.featured{grid-column:span 2}
+    .card.featured .title{font-size:1.28rem;line-height:1.28;-webkit-line-clamp:2}
+  }
+  .more{display:block;width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px dashed var(--line-strong);
+    background:none;color:var(--muted);font-weight:600}
+  .more:hover{color:var(--text);border-color:rgba(var(--accent-rgb),.5)}
+
+  /* ============ Cartes ============ */
+  .card{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);overflow:hidden;
+    background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);
+    transition:transform .18s ease,border-color .18s,box-shadow .18s}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,var(--g),transparent 72%)}
+  .card.fresh{border-color:rgba(var(--g-rgb),.45);box-shadow:0 0 0 1px rgba(var(--g-rgb),.16),0 12px 34px -16px rgba(var(--g-rgb),.65)}
+  @media (hover:hover){
+    .card:hover{transform:translateY(-2px);border-color:rgba(var(--g-rgb),.5);box-shadow:0 16px 40px -18px rgba(var(--g-rgb),.6)}
+  }
+  .stretch{position:absolute;inset:0;z-index:1;border-radius:inherit}
+  .stretch:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:30px;padding-right:34px}
+  .title{font-size:1rem;line-height:1.35;font-weight:640;letter-spacing:-.012em;overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .foot{margin-top:auto;display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:var(--muted);font-size:.8rem;min-height:30px}
+  .when{font-variant-numeric:tabular-nums}
+  .when.new{color:#86EFAC;font-weight:650}
+  .shop{display:inline-flex;align-items:center;gap:7px;padding:3px 10px 3px 8px;border-radius:8px;background:rgba(255,255,255,.07);
+    color:var(--text);font-weight:650;font-size:.8rem}
+  .shop i{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 8px rgba(var(--g-rgb),.8)}
+  .open{margin-left:auto;padding:6px 12px;border-radius:9px;background:rgba(var(--accent-rgb),.16);color:var(--accent);
+    font-weight:750;font-size:.82rem;opacity:0;transform:translateX(-6px);transition:opacity .18s,transform .18s}
+  @media (hover:hover){ .card:hover .open,.card:focus-within .open{opacity:1;transform:none} }
+  @media (hover:none){ .open{display:none} }
+
+  /* Badges de type */
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:750;
+    letter-spacing:.01em;border:1px solid transparent;white-space:nowrap}
+  .k-display{color:#FCD34D;background:linear-gradient(135deg,rgba(124,58,237,.42),rgba(245,158,11,.20));border-color:rgba(167,139,250,.5)}
+  .k-etb{color:#6EE7B7;background:rgba(16,185,129,.16);border-color:rgba(16,185,129,.42)}
+  .k-ultra{color:var(--ink);border-color:transparent;
+    background:linear-gradient(110deg,#F43F5E,#F59E0B,#34D399,#22D3EE,#A78BFA,#F43F5E);background-size:300% 100%;animation:shine 7s linear infinite}
+  @keyframes shine{to{background-position:300% 0}}
+  .k-coffret{color:#93C5FD;background:rgba(59,130,246,.16);border-color:rgba(59,130,246,.45)}
+  .k-deck{color:#FDBA74;background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.42)}
+  .k-booster{color:#F9A8D4;background:rgba(236,72,153,.14);border-color:rgba(236,72,153,.40)}
+  .k-autre{color:var(--muted);background:rgba(255,255,255,.05);border-color:var(--line)}
+  .tag-pre{color:#FDE68A;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.38)}
+  .tag-new{color:var(--ink);background:#86EFAC}
+
+  /* Favori */
+  .fav{position:absolute;z-index:2;right:8px;top:8px;width:40px;height:40px;border:0;background:none;border-radius:50%;
+    display:grid;place-items:center;color:var(--muted);transition:color .2s,background .2s}
+  .fav:hover{background:rgba(255,255,255,.06);color:var(--text)}
+  .fav svg{width:21px;height:21px;fill:transparent;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;transition:fill .2s}
+  .fav[aria-pressed="true"]{color:#FACC15}
   .fav[aria-pressed="true"] svg{fill:currentColor}
-  @media (prefers-color-scheme: light){ .fav[aria-pressed="true"]{color:#c58a00} }
+  .fav.pop svg{animation:pop .55s cubic-bezier(.2,1.7,.4,1)}
+  .fav.pop::after{content:"";position:absolute;inset:7px;border-radius:50%;animation:burst .55s ease-out}
+  @keyframes pop{0%{transform:scale(.6) rotate(-25deg)}55%{transform:scale(1.5) rotate(14deg)}100%{transform:scale(1) rotate(0)}}
+  @keyframes burst{from{box-shadow:0 0 0 0 rgba(250,204,21,.55)}to{box-shadow:0 0 0 16px rgba(250,204,21,0)}}
 
-  /* ---------- liste compacte (déjà en ligne) ---------- */
-  details.archive{margin-top:26px;border-top:1px solid var(--line)}
-  details.archive>summary{list-style:none;cursor:pointer;padding:16px 2px;font-size:1.02rem;font-weight:750;display:flex;align-items:center;gap:8px}
-  details.archive>summary::-webkit-details-marker{display:none}
-  details.archive>summary::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--muted);
-    border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
-  details.archive[open]>summary::after{transform:rotate(-135deg)}
-  details.archive>summary .n{font-weight:500;font-size:.85rem;color:var(--muted)}
-  .site-h{display:flex;align-items:baseline;gap:8px;margin:18px 2px 6px;font-weight:700;font-size:.95rem}
-  .site-h .n{font-weight:500;font-size:.8rem;color:var(--muted)}
-  .row{position:relative;display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;margin-bottom:6px;overflow:hidden}
-  .row::before{content:"";align-self:stretch;width:4px;background:var(--g);flex:none}
-  .row a{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;padding:10px 0;color:inherit;text-decoration:none}
-  .row .k{flex:none;font-weight:720;font-size:.84rem;min-width:4.6em}
-  .row .t{min-width:0;font-size:.86rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .fav{position:static;width:40px;height:40px;flex:none}
-  .row .fav svg{width:18px;height:18px}
-  .more{width:100%;margin:2px 0 8px;padding:10px;border:1px dashed var(--line);background:none;border-radius:10px;color:var(--muted);font-size:.88rem}
+  /* ============ Navigation basse (mobile) ============ */
+  .bottom{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));
+    width:min(520px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-radius:24px;
+    background:rgba(19,27,46,.58);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
+    border:1px solid rgba(255,255,255,.10);box-shadow:0 14px 44px -10px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06)}
+  .bottom button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px 7px;border:0;
+    border-radius:18px;background:none;color:var(--muted);font-size:.72rem;font-weight:650;transition:color .15s,background .15s}
+  .bottom button[aria-current="page"]{color:var(--accent);background:rgba(var(--accent-rgb),.14)}
+  .bottom .ico{width:22px;height:22px}
+  .bottom .cnt{position:absolute;top:3px;left:calc(50% + 7px);min-width:17px;height:17px;padding:0 5px;border-radius:9px;
+    background:var(--accent);color:var(--ink);font-size:.68rem;font-weight:800;display:grid;place-items:center}
+  .bottom .flag{position:absolute;top:7px;left:calc(50% + 8px);width:8px;height:8px;border-radius:50%;background:var(--accent)}
 
-  /* ---------- états ---------- */
-  .empty{margin:12px 0;padding:22px 18px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted);font-size:.92rem}
-  .empty strong{display:block;color:var(--text);font-size:1rem;margin-bottom:4px}
-  details.health{margin-top:28px;color:var(--muted);font-size:.85rem}
-  details.health summary{cursor:pointer;padding:6px 2px}
-  .site-state{display:flex;justify-content:space-between;gap:12px;padding:6px 2px;border-bottom:1px solid var(--line)}
-  .ok{color:var(--cyberpunk-ink)} .ko{color:var(--onepiece-ink)}
-  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+  /* Feuille de filtres */
+  dialog.sheet{margin:auto 0 0;width:100%;max-width:none;max-height:86vh;padding:0;border:0;border-radius:24px 24px 0 0;color:var(--text);
+    background:rgba(19,27,46,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+    border-top:1px solid rgba(255,255,255,.12);overflow:auto}
+  dialog.sheet::backdrop{background:rgba(3,6,12,.6)}
+  .sheet-in{padding:10px 18px calc(22px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+  .grab{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);margin:0 auto 14px}
+  .sheet h3{font-size:1.1rem;font-weight:780;margin-bottom:14px}
+  .sheet h4{margin:18px 0 8px;font-size:.84rem;font-weight:650;color:var(--muted)}
+  .sheet input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line-strong);background:rgba(9,13,22,.6)}
+  .wrap{display:flex;flex-wrap:wrap;gap:8px}
+  .wrap .chip{scroll-snap-align:none}
+  .done{width:100%;margin-top:22px;padding:14px;border:0;border-radius:14px;background:var(--accent);color:var(--ink);font-weight:800;font-size:1rem}
+  @media (min-width:1024px){ dialog.sheet{display:none} }
+
+  /* ============ Santé ============ */
+  details.health{margin-top:30px;color:var(--muted);font-size:.85rem}
+  details.health summary{cursor:pointer;padding:6px 2px;font-weight:600}
+  .site-state{display:flex;justify-content:space-between;gap:12px;padding:7px 2px;border-bottom:1px solid var(--line)}
+  .ok{color:#86EFAC}.ko{color:#FDA4AF}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
 </style>
 </head>
 <body>
+<div class="app">
+  <aside class="side" id="side" aria-label="Navigation"></aside>
 
-<div class="top">
-  <div class="brand">
-    <div>
-      <h1>TCG Watch</h1>
-      <p id="updated">Chargement…</p>
+  <div class="content">
+    <div class="head">
+      <div class="bar">
+        <div class="brand-m"><img src="icon.svg" alt=""><span>TCG Watch</span></div>
+        <label class="search-d">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="qd" type="search" placeholder="Rechercher un produit" autocomplete="off" aria-label="Rechercher un produit">
+        </label>
+        <div class="bar-r">
+          <span class="live" id="live" role="status"><span class="pulse"></span><span id="liveTxt">Live</span></span>
+          <button class="icon-btn" id="refresh" type="button" aria-label="Actualiser">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="kinds" id="kinds" role="group" aria-label="Type de produit"></div>
     </div>
-    <button id="refresh" class="icon-btn" type="button" aria-label="Actualiser">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
-    </button>
+
+    <main id="main"></main>
+
+    <details class="health">
+      <summary>État des enseignes surveillées</summary>
+      <div id="sites"></div>
+    </details>
   </div>
-  <nav class="tabs" id="tabs" aria-label="Jeu"></nav>
 </div>
 
-<div class="tools">
-  <input id="q" type="search" placeholder="Rechercher" autocomplete="off" aria-label="Rechercher un produit">
-  <select id="site" aria-label="Enseigne"><option value="">Enseignes</option></select>
-</div>
-<div class="chips" id="kinds" role="group" aria-label="Type de produit"></div>
-
-<main id="main"></main>
-
-<details class="health">
-  <summary>État des enseignes surveillées</summary>
-  <div id="sites"></div>
-</details>
+<nav class="bottom" id="bottom" aria-label="Navigation principale"></nav>
+<dialog class="sheet" id="sheet" aria-label="Filtres"></dialog>
 
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
-const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const SVG = (inner) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${inner}</svg>`;
+const ICON = {
+  flux:  SVG('<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>'),
+  spark: SVG('<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17v4M17 19h4"/>'),
+  star:  SVG('<path d="M12 3.4l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>'),
+  sliders: SVG('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
+  radar: SVG('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12L18 6"/><circle cx="12" cy="12" r="1" fill="currentColor"/>'),
+};
+const STAR_FAV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.4l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>';
 
-const KINDS = [
-  ["display", "Display"], ["etb", "ETB"], ["ultra", "Ultra-Premium"], ["coffret", "Coffret"],
-  ["deck", "Deck"], ["booster", "Booster"], ["autre", "Autre page"]
-];
+const KINDS = [["display", "Display"], ["etb", "ETB"], ["ultra", "Ultra-Premium"], ["coffret", "Coffret"], ["deck", "Deck"], ["booster", "Booster"], ["autre", "Autre page"]];
 const KIND_LABEL = Object.fromEntries(KINDS);
-const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z" stroke-linejoin="round"/></svg>';
+const GAME_IDS = ["pokemon", "onepiece", "cyberpunk"];
+const PAGE = 24;
 
-let data = { items: [], sites: {}, games: {} };
+let data = { items: [], sites: {}, games: {}, updated: null };
 let favs = new Set(store.get("favs", []));
-const lastVisit = store.get("lastVisit", 0);
+let lastVisit = store.get("lastVisit", 0);
 const saved = store.get("filters", {});
-const filter = { game: saved.game || "", kind: saved.kind || "", site: "", q: "", favOnly: false };
-const expanded = new Set();
-let archiveOpen = false;
+const state = { view: "flux", game: saved.game || "", kind: saved.kind || "", site: "", q: "", more: { new: PAGE, cat: PAGE } };
 
-/* ---------- aides ---------- */
+/* ============ Données ============ */
 function plain(it){
   let u = it.url; try{ u = decodeURIComponent(it.url); }catch(e){}
   return (u + " " + it.title).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[-_+/.?=&]+/g, " ");
@@ -199,8 +318,38 @@ function kindOf(it){
   it._k = k; it._pre = /precommande|pre ?order|reserv/.test(t);
   return k;
 }
+
+/* Titre propre : majuscules, accents courants, sigles et références (EV10, OP13...) */
+const SMALL = new Set(["de", "du", "des", "la", "le", "les", "et", "en", "au", "aux", "un", "une", "sur", "pour", "par", "avec", "ex", "to", "of", "the", "and", "vs"]);
+const APOS = new Set(["d", "l", "s", "n", "j", "qu"]);
+const ACCENTS = { pokemon: "Pokémon", elite: "Élite", evolutions: "Évolutions", evolution: "Évolution", precommande: "Précommande",
+  ecarlate: "Écarlate", rivalites: "Rivalités", destinees: "Destinées", heros: "Héros", academie: "Académie", scelle: "Scellé",
+  mega: "Méga", etincelles: "Étincelles", foret: "Forêt", celebrations: "Célébrations", legendes: "Légendes", tenebres: "Ténèbres",
+  aleatoire: "Aléatoire", fete: "Fête", eclat: "Éclat", eclats: "Éclats", frenetique: "Frénétique", ete: "Été", ere: "Ère",
+  reves: "Rêves", fantomes: "Fantômes", flammes: "Flammes", masque: "Masque", couronne: "Couronne" };
+const UPPER = /^(etb|tcg|jcc|upc|fr|en|jp|jap|gx|vmax|vstar|ps\d|cd)$/i;
+const CODE = /^(op|st|eb|prb|sv|ev|me|sm|swsh|xy|bw|wnc|b|m)\d+[a-z]?$/i;
+const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+function wordCase(w, first){
+  const low = w.toLowerCase();
+  if (UPPER.test(w) || CODE.test(w)) return w.toUpperCase();
+  if (ACCENTS[low]) return ACCENTS[low];
+  if (!first && SMALL.has(low)) return low;
+  return cap(low);
+}
+function cleanTitle(it){
+  if (it._t) return it._t;
+  const toks = it.title.split(/\s+/).filter(Boolean), out = [];
+  for (let i = 0; i < toks.length; i++){
+    const w = toks[i], low = w.toLowerCase();
+    if (APOS.has(low) && i + 1 < toks.length){ out.push(low + "'" + wordCase(toks[i + 1], true)); i++; continue; }
+    out.push(wordCase(w, out.length === 0));
+  }
+  it._t = out.join(" "); return it._t;
+}
+
 const isFresh = (it) => !it.baseline && new Date(it.first_seen).getTime() > lastVisit;
-const gameClass = (it) => "g-" + (["pokemon", "onepiece", "cyberpunk"].includes(it.game) ? it.game : "other");
+const gameClass = (it) => "g-" + (GAME_IDS.includes(it.game) ? it.game : "other");
 const safeUrl = (u) => /^https?:\/\//i.test(u) ? u : "#";
 const gameName = (id) => (data.games && data.games[id]) || id;
 
@@ -211,174 +360,239 @@ function ago(iso){
   if (s < 86400) return "il y a " + Math.round(s / 3600) + " h";
   return "il y a " + Math.round(s / 86400) + " j";
 }
-const sameDay = (a, b) => a.toDateString() === b.toDateString();
-function dayLabel(d){
-  const now = new Date(), y = new Date(now); y.setDate(y.getDate() - 1);
-  if (sameDay(d, now)) return "Aujourd'hui";
-  if (sameDay(d, y)) return "Hier";
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(d);
-}
-function clock(iso){
-  const d = new Date(iso);
-  return sameDay(d, new Date()) ? ago(iso) : new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(d);
-}
 
 function matches(it, skip){
-  if (skip !== "game" && filter.game && it.game !== filter.game) return false;
-  if (filter.kind && kindOf(it) !== filter.kind) return false;
-  if (filter.site && it.site !== filter.site) return false;
-  if (filter.favOnly && !favs.has(it.url)) return false;
-  const q = filter.q.trim().toLowerCase();
+  if (skip !== "game" && state.game && it.game !== state.game) return false;
+  if (skip !== "kind" && state.kind && kindOf(it) !== state.kind) return false;
+  if (skip !== "site" && state.site && it.site !== state.site) return false;
+  const q = state.q.trim().toLowerCase();
   if (q && !(plain(it) + " " + it.site_name.toLowerCase()).includes(q)) return false;
   return true;
 }
+const countBy = (skip, test) => (data.items || []).filter((it) => matches(it, skip) && (!test || test(it)));
 
-function favButton(it, rerender){
-  const b = el("button", "fav"); b.type = "button"; b.innerHTML = STAR;
+/* ============ Carte ============ */
+function favButton(it){
+  const b = el("button", "fav"); b.type = "button"; b.innerHTML = STAR_FAV;
   b.setAttribute("aria-pressed", String(favs.has(it.url)));
-  b.setAttribute("aria-label", "Mettre en favori");
+  b.setAttribute("aria-label", favs.has(it.url) ? "Retirer des favoris" : "Ajouter aux favoris");
   b.onclick = () => {
-    favs.has(it.url) ? favs.delete(it.url) : favs.add(it.url);
-    store.set("favs", [...favs]); rerender();
+    const on = !favs.has(it.url);
+    on ? favs.add(it.url) : favs.delete(it.url);
+    store.set("favs", [...favs]);
+    b.setAttribute("aria-pressed", String(on));
+    b.setAttribute("aria-label", on ? "Retirer des favoris" : "Ajouter aux favoris");
+    b.classList.remove("pop"); void b.offsetWidth; if (on) b.classList.add("pop");
+    setTimeout(renderAll, 560);
   };
   return b;
 }
-
-/* ---------- barres ---------- */
-function buildTabs(){
-  const box = $("tabs"); box.textContent = "";
-  const counts = {};
-  for (const it of data.items || []) if (matches(it, "game")) counts[it.game] = (counts[it.game] || 0) + 1;
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const defs = [["", "Tous", total], ...Object.entries(data.games || {}).map(([id, n]) => [id, n, counts[id] || 0])];
-  for (const [id, label, n] of defs){
-    const b = el("button", "tab " + (id ? "g-" + id : "all")); b.type = "button";
-    b.append(el("span", null, label), el("span", "n", String(n)));
-    b.setAttribute("aria-pressed", String(filter.game === id));
-    b.onclick = () => { filter.game = id; persist(); refresh(); };
-    box.appendChild(b);
-  }
+function card(it, featured){
+  const fresh = isFresh(it);
+  const art = el("article", "card " + gameClass(it) + (fresh ? " fresh" : "") + (featured ? " featured" : ""));
+  const a = el("a", "stretch"); a.href = safeUrl(it.url); a.target = "_blank"; a.rel = "noopener noreferrer";
+  a.setAttribute("aria-label", cleanTitle(it) + ", " + it.site_name);
+  const top = el("div", "top");
+  top.appendChild(el("span", "badge k-" + kindOf(it), KIND_LABEL[kindOf(it)]));
+  if (it._pre) top.appendChild(el("span", "badge tag-pre", "Précommande"));
+  if (fresh) top.appendChild(el("span", "badge tag-new", "Nouveau"));
+  const title = el("h3", "title", cleanTitle(it));
+  const foot = el("div", "foot");
+  const shop = el("span", "shop"); shop.title = gameName(it.game); shop.append(el("i"), document.createTextNode(it.site_name));
+  const when = el("span", "when" + (it.baseline ? "" : " new"), it.baseline ? "Déjà en ligne" : "Détecté " + ago(it.first_seen));
+  when.title = new Date(it.first_seen).toLocaleString("fr-FR");
+  foot.append(shop, when, el("span", "open", "Ouvrir ↗"));
+  art.append(a, top, title, foot, favButton(it));
+  return art;
 }
-function buildKinds(){
+function grid(list, key, featuredFirst){
+  const wrap = el("div"); const g = el("div", "grid");
+  const shown = list.slice(0, state.more[key]);
+  shown.forEach((it, i) => g.appendChild(card(it, featuredFirst && i === 0 && list.length > 1)));
+  wrap.appendChild(g);
+  if (list.length > shown.length){
+    const m = el("button", "more", `Afficher ${Math.min(PAGE, list.length - shown.length)} de plus (${list.length - shown.length} restantes)`);
+    m.type = "button"; m.onclick = () => { state.more[key] += PAGE; renderMain(); }; wrap.appendChild(m);
+  }
+  return wrap;
+}
+
+/* ============ Rendu ============ */
+function setAccent(){ document.documentElement.dataset.accent = state.game || "all"; }
+
+function renderLive(){
+  const live = $("live"), txt = $("liveTxt");
+  const age = data.updated ? (Date.now() - new Date(data.updated).getTime()) / 60000 : Infinity;
+  const stale = age > 50;
+  live.classList.toggle("stale", stale);
+  txt.textContent = stale ? "En pause" : "Live";
+  live.title = data.updated ? "Dernière vérification " + ago(data.updated) : "Aucune vérification pour l'instant";
+}
+
+function navBtn(label, icon, current, onclick, count, dotClass, off){
+  const b = el("button"); b.type = "button";
+  if (dotClass){ const d = el("span", "dot " + dotClass + (off ? " off" : "")); b.appendChild(d); } else b.insertAdjacentHTML("beforeend", icon);
+  b.appendChild(el("span", "lbl", label));
+  if (count != null) b.appendChild(el("span", "n", String(count)));
+  b.setAttribute("aria-current", String(current)); b.onclick = onclick; return b;
+}
+function renderSide(){
+  const side = $("side"); side.textContent = "";
+  const brand = el("div", "brand"); const img = el("img"); img.src = "icon.svg"; img.alt = ""; brand.append(img, el("span", null, "TCG Watch"));
+  side.appendChild(brand);
+
+  const g = el("div"); g.appendChild(el("div", "nav-h", "Jeux"));
+  const nav = el("nav", "nav"); nav.setAttribute("aria-label", "Jeux");
+  const total = countBy("game").length;
+  nav.appendChild(navBtn("Tous", ICON.flux, state.view !== "favs" && !state.game, () => { state.view = "flux"; state.game = ""; persist(); renderAll(); }, total));
+  for (const id of GAME_IDS){
+    const n = countBy("game", (it) => it.game === id).length;
+    nav.appendChild(navBtn(gameName(id), "", state.view !== "favs" && state.game === id, () => { state.view = "flux"; state.game = id; persist(); renderAll(); }, n, "g-" + id));
+  }
+  nav.appendChild(navBtn("Favoris", ICON.star, state.view === "favs", () => { state.view = "favs"; renderAll(); }, favs.size));
+  g.appendChild(nav); side.appendChild(g);
+
+  const s = el("div"); s.appendChild(el("div", "nav-h", "Enseignes"));
+  const sn = el("nav", "nav"); sn.setAttribute("aria-label", "Enseignes");
+  const rows = Object.entries(data.sites || {}).map(([id, v]) => [id, v, countBy("site", (it) => it.site === id).length]).sort((a, b) => b[2] - a[2]);
+  for (const [id, v, n] of rows){
+    sn.appendChild(navBtn(v.name, "", state.site === id, () => { state.site = state.site === id ? "" : id; renderAll(); }, v.ok ? n : "—", "g-other", !v.ok));
+  }
+  s.appendChild(sn); side.appendChild(s);
+}
+
+function renderKinds(){
   const box = $("kinds"); box.textContent = "";
-  const mk = (id, label, pressed, fn) => {
-    const b = el("button", "chip", label); b.type = "button";
-    b.setAttribute("aria-pressed", String(pressed)); b.onclick = fn; box.appendChild(b);
+  const mk = (id, label, n) => {
+    const b = el("button", "chip"); b.type = "button"; b.append(document.createTextNode(label), el("span", "n", String(n)));
+    b.setAttribute("aria-pressed", String(state.kind === id));
+    b.onclick = () => { state.kind = state.kind === id ? "" : id; persist(); renderAll(); }; box.appendChild(b);
   };
-  mk("", "Tous types", !filter.kind, () => { filter.kind = ""; persist(); refresh(); });
-  for (const [id, label] of KINDS) mk(id, label, filter.kind === id, () => { filter.kind = filter.kind === id ? "" : id; persist(); refresh(); });
-  const f = el("button", "chip", "Favoris"); f.type = "button";
-  f.setAttribute("aria-pressed", String(filter.favOnly));
-  f.onclick = () => { filter.favOnly = !filter.favOnly; refresh(); };
-  box.appendChild(f);
+  const all = el("button", "chip"); all.type = "button"; all.append(document.createTextNode("Tous les types"), el("span", "n", String(countBy("kind").length)));
+  all.setAttribute("aria-pressed", String(!state.kind)); all.onclick = () => { state.kind = ""; persist(); renderAll(); }; box.appendChild(all);
+  for (const [id, label] of KINDS) mk(id, label, countBy("kind", (it) => kindOf(it) === id).length);
 }
-const persist = () => store.set("filters", { game: filter.game, kind: filter.kind });
 
-function buildSites(){
-  const sel = $("site"); const keep = filter.site; sel.length = 1;
-  for (const [id, s] of Object.entries(data.sites || {})){
-    const o = el("option", null, s.name); o.value = id; sel.appendChild(o);
+function newSection(fresh){
+  const unseen = fresh.filter(isFresh).length;
+  const sec = el("section", "sec-new" + (unseen ? " glow" : "") + (fresh.length ? "" : " is-empty"));
+  if (!fresh.length){
+    const line = el("div", "empty-line"); line.insertAdjacentHTML("beforeend", ICON.radar);
+    const filtered = state.game || state.kind || state.site || state.q.trim();
+    const sites = Object.values(data.sites || {}).filter((s) => s.ok).length;
+    const t = el("span"); const st = el("strong", null, filtered ? "Aucune nouveauté pour ces filtres." : "Aucune nouveauté.");
+    t.append(st, document.createTextNode(filtered ? " Retire un filtre pour élargir." : ` Le radar surveille ${sites} enseignes toutes les 15 min.`));
+    line.appendChild(t); sec.appendChild(line); return sec;
   }
-  sel.value = keep;
+  const h = el("div", "sec-h"); h.append(el("h2", null, "Nouveautés"), el("span", "n", String(fresh.length)));
+  if (unseen){ const b = el("button", "ghost", "Marquer comme vu"); b.type = "button";
+    b.onclick = () => { lastVisit = Date.now(); store.set("lastVisit", lastVisit); renderAll(); }; h.appendChild(b); }
+  sec.append(h, grid(fresh, "new", true));
+  return sec;
+}
+
+function renderMain(){
+  const main = $("main"); main.textContent = "";
+  const list = (data.items || []).filter((it) => matches(it));
+  if (state.view === "favs"){
+    const favList = list.filter((it) => favs.has(it.url)).sort((a, b) => b.first_seen.localeCompare(a.first_seen));
+    const sec = el("section"); const h = el("div", "sec-h"); h.append(el("h2", null, "Favoris"), el("span", "n", String(favList.length))); sec.appendChild(h);
+    if (favList.length) sec.appendChild(grid(favList, "cat", false));
+    else { const e = el("div", "sec-new is-empty"); const l = el("div", "empty-line"); l.insertAdjacentHTML("beforeend", ICON.star);
+      l.appendChild(el("span", null, "Touche l'étoile d'une carte pour la retrouver ici.")); e.appendChild(l); sec.appendChild(e); }
+    main.appendChild(sec); return;
+  }
+  const fresh = list.filter((it) => !it.baseline).sort((a, b) => b.first_seen.localeCompare(a.first_seen));
+  main.appendChild(newSection(fresh));
+  if (state.view === "flux"){
+    const rank = (it) => KINDS.findIndex(([id]) => id === kindOf(it));
+    const old = list.filter((it) => it.baseline).sort((a, b) => rank(a) - rank(b) || cleanTitle(a).localeCompare(cleanTitle(b)));
+    if (old.length){
+      const sec = el("section"); const h = el("div", "sec-h"); h.append(el("h2", null, "Déjà en ligne"), el("span", "n", String(old.length)));
+      sec.append(h, grid(old, "cat", false)); main.appendChild(sec);
+    } else if (!fresh.length && !(data.items || []).length){
+      /* premier lancement : rien à montrer encore */
+    }
+  }
+}
+
+function renderBottom(){
+  const b = $("bottom"); b.textContent = "";
+  const unseen = (data.items || []).filter(isFresh).length;
+  const filtersOn = !!(state.game || state.site || state.q.trim());
+  const mk = (label, icon, view, onclick, badge, flag) => {
+    const x = el("button"); x.type = "button"; x.insertAdjacentHTML("beforeend", icon); x.appendChild(el("span", null, label));
+    if (view) x.setAttribute("aria-current", state.view === view ? "page" : "false");
+    if (badge) x.appendChild(el("span", "cnt", String(badge > 99 ? "99+" : badge)));
+    if (flag) x.appendChild(el("span", "flag"));
+    x.onclick = onclick; b.appendChild(x);
+  };
+  mk("Flux", ICON.flux, "flux", () => { state.view = "flux"; renderAll(); window.scrollTo({ top: 0 }); });
+  mk("Nouveautés", ICON.spark, "new", () => { state.view = "new"; renderAll(); window.scrollTo({ top: 0 }); }, unseen);
+  mk("Favoris", ICON.star, "favs", () => { state.view = "favs"; renderAll(); window.scrollTo({ top: 0 }); });
+  mk("Filtres", ICON.sliders, null, openSheet, 0, filtersOn);
+}
+
+/* ---- Feuille de filtres (mobile) ---- */
+const sheet = $("sheet");
+function renderSheet(){
+  const f = el("div", "sheet-in"); f.appendChild(el("div", "grab")); f.appendChild(el("h3", null, "Filtres"));
+  const q = el("input"); q.type = "search"; q.placeholder = "Rechercher un produit"; q.value = state.q; q.autocomplete = "off"; q.setAttribute("aria-label", "Rechercher un produit");
+  q.oninput = () => { state.q = q.value; $("qd").value = q.value; renderAll(false); done.textContent = doneLabel(); };
+  f.appendChild(q);
+  f.appendChild(el("h4", null, "Jeu"));
+  const gw = el("div", "wrap");
+  const chip = (label, pressed, fn) => { const c = el("button", "chip", label); c.type = "button"; c.setAttribute("aria-pressed", String(pressed)); c.onclick = fn; return c; };
+  gw.appendChild(chip("Tous", !state.game, () => { state.game = ""; persist(); renderAll(); }));
+  for (const id of GAME_IDS) gw.appendChild(chip(gameName(id), state.game === id, () => { state.game = id; persist(); renderAll(); }));
+  f.appendChild(gw);
+  f.appendChild(el("h4", null, "Enseigne"));
+  const sw = el("div", "wrap");
+  sw.appendChild(chip("Toutes", !state.site, () => { state.site = ""; renderAll(); }));
+  for (const [id, v] of Object.entries(data.sites || {}).filter(([, v]) => v.ok)) sw.appendChild(chip(v.name, state.site === id, () => { state.site = state.site === id ? "" : id; renderAll(); }));
+  f.appendChild(sw);
+  const done = el("button", "done", doneLabel()); done.type = "button"; done.onclick = () => sheet.close(); f.appendChild(done);
+  sheet.textContent = ""; sheet.appendChild(f);
+}
+function doneLabel(){ const n = countBy().length; return `Voir ${n} page${n > 1 ? "s" : ""}`; }
+function openSheet(){ renderSheet(); if (!sheet.open) sheet.showModal(); }
+sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
+
+function renderSites(){
   const box = $("sites"); box.textContent = "";
   for (const s of Object.values(data.sites || {})){
     const row = el("div", "site-state");
-    const state = el("span", s.ok ? "ok" : "ko", s.ok ? `lue, ${s.urls_seen.toLocaleString("fr-FR")} pages vues` : "illisible");
-    row.append(el("span", null, s.name), state); box.appendChild(row);
+    row.append(el("span", null, s.name), el("span", s.ok ? "ok" : "ko", s.ok ? `lue, ${s.urls_seen.toLocaleString("fr-FR")} pages vues` : "illisible"));
+    box.appendChild(row);
   }
 }
 
-/* ---------- cartes ---------- */
-function freshCard(it){
-  const li = el("li", "item " + gameClass(it) + (isFresh(it) ? " fresh" : ""));
-  const a = el("a", "link"); a.href = safeUrl(it.url); a.target = "_blank"; a.rel = "noopener noreferrer";
-  const head = el("div", "head");
-  head.appendChild(el("span", "kind", KIND_LABEL[kindOf(it)]));
-  if (it._pre) head.appendChild(el("span", "tag", "Précommande"));
-  if (isFresh(it)) head.appendChild(el("span", "tag new", "Nouveau"));
-  const meta = el("div", "meta");
-  meta.append(el("span", "shop", it.site_name), el("span", "game", gameName(it.game)), el("span", "when", clock(it.first_seen)));
-  a.append(head, el("div", "name", it.title), meta);
-  li.append(a, favButton(it, render));
-  return li;
+const persist = () => store.set("filters", { game: state.game, kind: state.kind });
+function renderAll(withSheet = true){
+  state.more = { new: PAGE, cat: PAGE };
+  setAccent(); renderLive(); renderSide(); renderKinds(); renderMain(); renderBottom();
+  if (withSheet && sheet.open) renderSheet();
 }
-function compactRow(it){
-  const li = el("li", "row " + gameClass(it));
-  const a = el("a"); a.href = safeUrl(it.url); a.target = "_blank"; a.rel = "noopener noreferrer";
-  a.append(el("span", "k", KIND_LABEL[kindOf(it)]), el("span", "t", it.title));
-  li.append(a, favButton(it, render));
-  return li;
-}
-
-function render(){
-  const main = $("main"); main.textContent = "";
-  const all = (data.items || []).filter((it) => matches(it));
-  const fresh = all.filter((it) => !it.baseline).sort((a, b) => b.first_seen.localeCompare(a.first_seen));
-  const old = all.filter((it) => it.baseline);
-
-  const h = el("h2", "sec-title", "Nouveautés"); h.append(el("span", "n", String(fresh.length))); main.appendChild(h);
-  if (fresh.length){
-    let lastDay = "", ul = null;
-    for (const it of fresh.slice(0, 200)){
-      const d = new Date(it.first_seen), key = d.toDateString();
-      if (key !== lastDay){ main.appendChild(el("div", "day", dayLabel(d))); ul = el("ul"); main.appendChild(ul); lastDay = key; }
-      ul.appendChild(freshCard(it));
-    }
-  } else {
-    const e = el("div", "empty");
-    const filtered = filter.game || filter.kind || filter.site || filter.q || filter.favOnly;
-    e.append(el("strong", null, filtered ? "Rien ne correspond à ces filtres" : "Aucune nouvelle page pour l'instant"),
-      document.createTextNode(filtered ? "Retire un filtre pour voir plus de pages."
-        : (data.updated ? "Dernière vérification " + ago(data.updated) + ". Le détecteur repasse toutes les 15 minutes." : "")));
-    main.appendChild(e);
-  }
-
-  if (old.length){
-    const d = el("details", "archive"); d.open = archiveOpen || filter.q.trim().length > 0;
-    d.ontoggle = () => { if (!filter.q.trim()) archiveOpen = d.open; };
-    const s = el("summary", null, "Déjà en ligne"); s.append(el("span", "n", String(old.length))); d.appendChild(s);
-    const bySite = new Map();
-    for (const it of old){ if (!bySite.has(it.site_name)) bySite.set(it.site_name, []); bySite.get(it.site_name).push(it); }
-    for (const [name, list] of [...bySite].sort((a, b) => b[1].length - a[1].length)){
-      const rank = (it) => KINDS.findIndex(([id]) => id === kindOf(it));
-      list.sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
-      const sh = el("div", "site-h", name); sh.append(el("span", "n", String(list.length))); d.appendChild(sh);
-      const ul = el("ul"); const open = expanded.has(name); const shown = open ? list : list.slice(0, 20);
-      for (const it of shown) ul.appendChild(compactRow(it));
-      d.appendChild(ul);
-      if (!open && list.length > 20){
-        const m = el("button", "more", `Afficher les ${list.length - 20} autres`); m.type = "button";
-        m.onclick = () => { expanded.add(name); archiveOpen = true; render(); };
-        d.appendChild(m);
-      }
-    }
-    main.appendChild(d);
-  }
-}
-
-function refresh(){ buildTabs(); buildKinds(); render(); }
 
 async function load(){
-  $("updated").textContent = "Chargement…";
+  const btn = $("refresh"); btn.classList.add("spin");
   try{
     const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) throw new Error(r.status);
     data = await r.json();
-    $("updated").textContent = "Vérifié " + ago(data.updated);
-  }catch(e){
-    $("updated").textContent = "Données indisponibles, réessaie";
-  }
-  buildSites(); refresh();
+  }catch(e){ /* on garde les données déjà affichées */ }
+  btn.classList.remove("spin");
+  renderSites(); renderAll();
 }
 
 $("refresh").onclick = load;
-$("q").oninput = (e) => { filter.q = e.target.value; refresh(); };
-$("site").onchange = (e) => { filter.site = e.target.value; refresh(); };
+$("qd").oninput = (e) => { state.q = e.target.value; renderAll(); };
 const mark = () => store.set("lastVisit", Date.now());
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") mark(); });
 window.addEventListener("pagehide", mark);
+setInterval(() => { renderLive(); }, 60000);
 if ("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(() => {}); }
-load();
+renderAll(); load();
 </script>
 </body>
 </html>
