@@ -97,7 +97,9 @@
       "name": "Pokémon 30 ans - Coffret Ultra Premium Noctali (descellé)",
       "site": "Philibert",
       "game": "pokemon",
-      "url": "https://www.philibertnet.com/fr/pokemon/184748-pokemon-30-ans-coffret-ultra-premium-noctali-descelle-196214155398.html"
+      "url": "https://www.philibertnet.com/fr/pokemon/184748-pokemon-30-ans-coffret-ultra-premium-noctali-descelle-196214155398.html",
+      "out_regex": "is-coming-soon",
+      "in_regex": "Ajouter au panier"
     },
     {
       "id": "smyths-upc-noctali",
