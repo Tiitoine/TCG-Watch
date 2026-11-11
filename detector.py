@@ -266,16 +266,31 @@ def notify(items: list[dict], games: dict[str, str]) -> list[str]:
             sent.append("ntfy")
         except Exception as e:  # noqa: BLE001
             print(f"[notif] ntfy a échoué : {e}", file=sys.stderr)
-    token, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
-    if token and chat:
-        try:
-            post_json(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                {"chat_id": chat, "text": f"{title}\n\n{text}"[:4000], "disable_web_page_preview": True},
-            )
-            sent.append("telegram")
-        except Exception as e:  # noqa: BLE001
-            print(f"[notif] Telegram a échoué : {e}", file=sys.stderr)
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if token:
+        # Un canal général (TELEGRAM_CHAT_ID, reçoit tout) et/ou un canal par jeu
+        # (TELEGRAM_CHAT_ID_POKEMON, TELEGRAM_CHAT_ID_ONEPIECE, TELEGRAM_CHAT_ID_CYBERPUNK...).
+        targets: dict[str, dict[str, dict]] = {}
+        general = os.environ.get("TELEGRAM_CHAT_ID")
+        if general:
+            targets.setdefault(general, {}).update({it["url"]: it for it in items})
+        for gid in games:
+            chat = os.environ.get(f"TELEGRAM_CHAT_ID_{gid.upper()}")
+            if chat:
+                targets.setdefault(chat, {}).update({it["url"]: it for it in items if it["game"] == gid})
+        api = os.environ.get("TELEGRAM_API_BASE", "https://api.telegram.org").rstrip("/")
+        for chat, bucket in targets.items():
+            if not bucket:
+                continue
+            t, body = build_message(list(bucket.values()), games)
+            try:
+                post_json(
+                    f"{api}/bot{token}/sendMessage",
+                    {"chat_id": chat, "text": f"{t}\n\n{body}"[:4000], "disable_web_page_preview": True},
+                )
+                sent.append(f"telegram {chat}")
+            except Exception as e:  # noqa: BLE001
+                print(f"[notif] Telegram {chat} a échoué : {e}", file=sys.stderr)
     hook = os.environ.get("DISCORD_WEBHOOK")
     if hook:
         try:
@@ -283,6 +298,153 @@ def notify(items: list[dict], games: dict[str, str]) -> list[str]:
             sent.append("discord")
         except Exception as e:  # noqa: BLE001
             print(f"[notif] Discord a échoué : {e}", file=sys.stderr)
+    return sent
+
+
+# --------------------------------------------------------------------------
+# Suivi de pages précises (disponibilité + prix)
+# --------------------------------------------------------------------------
+# Sur Philibert, le formulaire « Prévenez-moi lorsque le produit est disponible »
+# n'existe que tant que le produit est en rupture.
+WATCH_OUT_HTML = re.compile(
+    r"ajax/product/\d+/\d+/mail_alert|Prévenez-moi lorsque le produit est disponible", re.I
+)
+WATCH_OUT_SCHEMA = re.compile(r"OutOfStock|SoldOut|Discontinued", re.I)
+LD_RE = re.compile(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', re.S | re.I)
+
+
+def _iter_ld(node):
+    if isinstance(node, list):
+        for n in node:
+            yield from _iter_ld(n)
+    elif isinstance(node, dict):
+        yield node
+        graph = node.get("@graph")
+        if isinstance(graph, list):
+            yield from _iter_ld(graph)
+
+
+def read_product(html: str):
+    """Lit les données Product (schema.org) de la page : prix et disponibilité déclarée."""
+    for m in LD_RE.finditer(html):
+        try:
+            data = json.loads(m.group(1), strict=False)
+        except ValueError:
+            continue
+        for node in _iter_ld(data):
+            t = node.get("@type")
+            if t == "Product" or (isinstance(t, list) and "Product" in t):
+                offers = node.get("offers") or {}
+                if isinstance(offers, list):
+                    offers = offers[0] if offers else {}
+                price = None
+                try:
+                    price = float(str(offers.get("price", "")).replace(",", "."))
+                except ValueError:
+                    pass
+                if price is not None and price <= 0:  # prix « à venir » déclaré à 0
+                    price = None
+                return {"price": price, "availability": str(offers.get("availability", ""))}
+    return None
+
+
+def check_watch(w: dict, fetch=None):
+    """Retourne {'status': 'in'|'out', 'price': float|None} ou None si la page est illisible
+    (erreur réseau, page de protection...) : dans ce cas on ne change rien."""
+    fetch = fetch or http_get
+    try:
+        html = fetch(w["url"], timeout=30).decode("utf-8", "replace")
+    except Exception as e:  # noqa: BLE001
+        print(f"[suivi] {w['name']} : page illisible ({e})", file=sys.stderr)
+        return None
+    prod = read_product(html)
+    if not prod:  # pas de fiche produit reconnue : probablement une page de protection ou un changement du site
+        return None
+    extra = w.get("out_regex")
+    if (
+        WATCH_OUT_HTML.search(html)
+        or (extra and re.search(extra, html, re.I | re.S))
+        or WATCH_OUT_SCHEMA.search(prod["availability"])
+    ):
+        return {"status": "out", "price": prod["price"]}
+    return {"status": "in", "price": prod["price"]}
+
+
+def fmt_price(p) -> str:
+    return "" if p is None else f"{p:.2f}".replace(".", ",") + " €"
+
+
+def run_watch(cfg: dict, state_dir: Path, fetch=None) -> list[dict]:
+    """Vérifie les pages suivies et retourne les événements à signaler."""
+    watches = cfg.get("watch", [])
+    if not watches:
+        return []
+    path = state_dir / "watch.json"
+    try:
+        state = json.loads(path.read_text("utf-8"))
+    except (OSError, ValueError):
+        state = {}
+    events: list[dict] = []
+    for w in watches:
+        res = check_watch(w, fetch)
+        if res is None:
+            print(f"?   {w['name']:<45} illisible, état conservé")
+            continue
+        prev = state.get(w["id"])
+        label = "EN STOCK ?" if res["status"] == "in" else "rupture"
+        print(f"OK  {w['name']:<45} {label} {fmt_price(res['price'])}")
+        if res["status"] == "in" and (prev is None or prev["status"] != "in"):
+            events.append({**w, "kind": "stock", "price": res["price"]})
+        elif prev and prev.get("price") is not None and res["price"] is not None and abs(prev["price"] - res["price"]) > 0.001:
+            events.append({**w, "kind": "price", "price": res["price"], "old_price": prev["price"]})
+        new = {"status": res["status"], "price": res["price"]}
+        if prev != new:  # on n'écrit que si quelque chose change (évite un commit à chaque passage)
+            state[w["id"]] = {**new, "changed": now_iso()}
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=1, sort_keys=True), "utf-8")
+    return events
+
+
+def build_watch_message(ev: dict):
+    price = fmt_price(ev["price"])
+    if ev["kind"] == "stock":
+        title = f"DISPONIBLE ? {ev['site']}"
+        head = "Le bouton « Prévenez-moi » a disparu : le produit semble de nouveau en stock."
+    else:
+        title = f"Prix modifié : {ev['site']}"
+        head = f"Ancien prix {fmt_price(ev['old_price'])}, nouveau prix {price}."
+    text = f"{head}\n\n{ev['name']}\n{price}\n{ev['url']}".replace("\n\n\n", "\n\n")
+    return title, text
+
+
+def notify_watch(events: list[dict], games: dict[str, str]) -> list[str]:
+    sent: list[str] = []
+    for ev in events:
+        title, text = build_watch_message(ev)
+        topic = os.environ.get("NTFY_TOPIC")
+        if topic:
+            server = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
+            try:
+                post_json(server, {"topic": topic, "title": title, "message": text[:3500], "click": ev["url"], "priority": 5})
+                sent.append("ntfy")
+            except Exception as e:  # noqa: BLE001
+                print(f"[notif] ntfy a échoué : {e}", file=sys.stderr)
+        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        if token:
+            chats = {c for c in (os.environ.get("TELEGRAM_CHAT_ID"), os.environ.get(f"TELEGRAM_CHAT_ID_{ev.get('game', '').upper()}")) if c}
+            api = os.environ.get("TELEGRAM_API_BASE", "https://api.telegram.org").rstrip("/")
+            for chat in sorted(chats):
+                try:
+                    post_json(f"{api}/bot{token}/sendMessage", {"chat_id": chat, "text": f"{title}\n\n{text}"[:4000]})
+                    sent.append(f"telegram {chat}")
+                except Exception as e:  # noqa: BLE001
+                    print(f"[notif] Telegram {chat} a échoué : {e}", file=sys.stderr)
+        hook = os.environ.get("DISCORD_WEBHOOK")
+        if hook:
+            try:
+                post_json(hook, {"content": f"**{title}**\n\n{text}"[:1900]})
+                sent.append("discord")
+            except Exception as e:  # noqa: BLE001
+                print(f"[notif] Discord a échoué : {e}", file=sys.stderr)
     return sent
 
 
@@ -310,6 +472,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(HERE / "docs" / "data.json"))
     ap.add_argument("--check", action="store_true", help="teste l'accès aux sitemaps sans rien enregistrer")
     ap.add_argument("--no-notify", action="store_true")
+    ap.add_argument("--watch-only", action="store_true", help="ne vérifie que les pages suivies (rapide, pour un passage toutes les 5 min)")
     args = ap.parse_args()
 
     cfg = json.loads(Path(args.config).read_text("utf-8"))
@@ -318,6 +481,12 @@ def main() -> int:
 
     state_dir = Path(args.state_dir)
     state_dir.mkdir(parents=True, exist_ok=True)
+    if args.watch_only:
+        wev = run_watch(cfg, state_dir)
+        if wev and not args.no_notify:
+            sent = notify_watch(wev, {g["id"]: g["name"] for g in cfg["rules"]["games"]})
+            print(f"{len(wev)} changement(s) sur les pages suivies, alerte via : {', '.join(sent) or 'aucun canal configuré'}")
+        return 0
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     games = {g["id"]: g["name"] for g in cfg["rules"]["games"]}
@@ -373,6 +542,10 @@ def main() -> int:
         print(f"{len(fresh)} nouvelle(s) page(s), alerte envoyée via : {', '.join(sent) or 'aucun canal configuré'}")
     else:
         print(f"{len(fresh)} nouvelle(s) page(s) détectée(s).")
+    wev = run_watch(cfg, state_dir)
+    if wev and not args.no_notify:
+        sent = notify_watch(wev, games)
+        print(f"{len(wev)} changement(s) sur les pages suivies, alerte via : {', '.join(sent) or 'aucun canal configuré'}")
     return 0
 
 
