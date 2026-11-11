@@ -1,0 +1,49 @@
+name: TCG Watch - pages suivies
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Même groupe que le workflow principal : jamais deux passages en même temps.
+concurrency:
+  group: tcg-watch
+  cancel-in-progress: false
+
+jobs:
+  watch-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vérifier les pages suivies
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID_POKEMON: ${{ secrets.TELEGRAM_CHAT_ID_POKEMON }}
+          TELEGRAM_CHAT_ID_ONEPIECE: ${{ secrets.TELEGRAM_CHAT_ID_ONEPIECE }}
+          TELEGRAM_CHAT_ID_CYBERPUNK: ${{ secrets.TELEGRAM_CHAT_ID_CYBERPUNK }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python detector.py --watch-only
+
+      - name: Enregistrer l'état
+        run: |
+          git config user.name "tcg-watch"
+          git config user.email "tcg-watch@users.noreply.github.com"
+          git add state
+          if git diff --cached --quiet; then
+            echo "Rien de nouveau."
+          else
+            git commit -m "suivi $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash || true
+            git push
+          fi
