@@ -102,21 +102,6 @@
       "in_regex": "Ajouter au panier"
     },
     {
-      "id": "smyths-upc-noctali",
-      "name": "Pokémon 30 ans - Coffret Ultra Premium Noctali",
-      "site": "Smyths Toys",
-      "game": "pokemon",
-      "url": "https://www.smythstoys.com/fr/fr-fr/jouets/jeux-de-societe-et-puzzles/cartes-a-collectionner/cartes-pokemon/pokemon-coffret-collection-ultra-premium-30eme-anniversaire-noctali/p/264183"
-    },
-    {
-      "id": "oupi-upc-noctali",
-      "name": "UPC Soirée Noctali-ex 30e Anniversaire (FR)",
-      "site": "Oupi",
-      "game": "pokemon",
-      "url": "https://oupi.eu/fr/coffrets-pokemon/7972-collections-ultra-premium-soiree-noctali-ex-upc-30e-anniversaire-francais-pokemon.html",
-      "out_regex": "id=\"product-availability\"[^>]*>(?:\\s*<i[^>]*></i>)?\\s*Rupture de stock"
-    },
-    {
       "id": "destock-upc-noctali",
       "name": "UPC Soirée Noctali-ex 30e Anniversaire (FR)",
       "site": "DestockTCG",
