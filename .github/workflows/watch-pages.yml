@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
@@ -44,6 +46,9 @@ jobs:
             echo "Rien de nouveau."
           else
             git commit -m "suivi $(date -u +%Y-%m-%dT%H:%MZ)"
-            git pull --rebase --autostash || true
-            git push
+            for i in 1 2 3; do
+              git pull --rebase -X theirs && git push && break
+              git rebase --abort 2>/dev/null || true
+              sleep 3
+            done
           fi
