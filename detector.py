@@ -355,16 +355,20 @@ def check_watch(w: dict, fetch=None):
     try:
         html = fetch(w["url"], timeout=30).decode("utf-8", "replace")
     except Exception as e:  # noqa: BLE001
-        print(f"[suivi] {w['name']} : page illisible ({e})", file=sys.stderr)
+        print(f"[suivi] {w['site']} : page illisible ({e})", file=sys.stderr)
         return None
     prod = read_product(html)
     if not prod:  # pas de fiche produit reconnue : probablement une page de protection ou un changement du site
         return None
     extra = w.get("out_regex")
+    proof = w.get("in_regex")
     if (
         WATCH_OUT_HTML.search(html)
         or (extra and re.search(extra, html, re.I | re.S))
         or WATCH_OUT_SCHEMA.search(prod["availability"])
+        # Certains sites ajoutent le message « rupture » en JavaScript : on exige alors une
+        # preuve positive (le bouton d'achat dans la page) avant de conclure « en stock ».
+        or (proof and not re.search(proof, html, re.I | re.S))
     ):
         return {"status": "out", "price": prod["price"]}
     return {"status": "in", "price": prod["price"]}
@@ -388,11 +392,11 @@ def run_watch(cfg: dict, state_dir: Path, fetch=None) -> list[dict]:
     for w in watches:
         res = check_watch(w, fetch)
         if res is None:
-            print(f"?   {w['name']:<45} illisible, état conservé")
+            print(f"?   {w['site']:<12} {w['name'][:36]:<36} illisible, état conservé")
             continue
         prev = state.get(w["id"])
         label = "EN STOCK ?" if res["status"] == "in" else "rupture"
-        print(f"OK  {w['name']:<45} {label} {fmt_price(res['price'])}")
+        print(f"OK  {w['site']:<12} {w['name'][:36]:<36} {label} {fmt_price(res['price'])}")
         if res["status"] == "in" and (prev is None or prev["status"] != "in"):
             events.append({**w, "kind": "stock", "price": res["price"]})
         elif prev and prev.get("price") is not None and res["price"] is not None and abs(prev["price"] - res["price"]) > 0.001:
@@ -408,7 +412,7 @@ def build_watch_message(ev: dict):
     price = fmt_price(ev["price"])
     if ev["kind"] == "stock":
         title = f"DISPONIBLE ? {ev['site']}"
-        head = "Le bouton « Prévenez-moi » a disparu : le produit semble de nouveau en stock."
+        head = "Le produit semble de nouveau en stock : vérifie vite la page."
     else:
         title = f"Prix modifié : {ev['site']}"
         head = f"Ancien prix {fmt_price(ev['old_price'])}, nouveau prix {price}."
@@ -542,10 +546,6 @@ def main() -> int:
         print(f"{len(fresh)} nouvelle(s) page(s), alerte envoyée via : {', '.join(sent) or 'aucun canal configuré'}")
     else:
         print(f"{len(fresh)} nouvelle(s) page(s) détectée(s).")
-    wev = run_watch(cfg, state_dir)
-    if wev and not args.no_notify:
-        sent = notify_watch(wev, games)
-        print(f"{len(wev)} changement(s) sur les pages suivies, alerte via : {', '.join(sent) or 'aucun canal configuré'}")
     return 0
 
 
